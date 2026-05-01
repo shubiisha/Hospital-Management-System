@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Smart Hospital Scheduler</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+
+  <body>
+    <header>
+      <h1>Smart Hospital Appointment System</h1>
+    </header>
+
+    <div class="container">
+      <div class="card">
+        <h2>Book Appointment</h2>
+
+        <input type="number" id="patient_id" placeholder="Patient ID" />
+        <input type="number" id="doctor_id" placeholder="Doctor ID" />
+        <input type="date" id="date" />
+        <input type="time" id="time" />
+        <input type="number" id="priority" placeholder="Priority Level" />
+
+        <button onclick="bookAppointment()">Book Appointment</button>
+
+        <p id="result"></p>
+      </div>
+
+      <div class="card">
+        <h2>Next Patient Queue</h2>
+
+        <input type="number" id="doctor_queue" placeholder="Doctor ID" />
+
+        <button onclick="getNextPatient()">Check Queue</button>
+
+        <div class="output" id="queue"></div>
+      </div>
+
+      <div class="card">
+        <h2>AI Consultation Prediction</h2>
+
+        <input type="number" id="appointment_id" placeholder="Appointment ID" />
+
+        <button onclick="predictTime()">Predict Time</button>
+
+        <div class="output" id="prediction"></div>
+      </div>
+      <div class="card">
+        <h2>Update Appointment Status</h2>
+
+        <input type="number" id="status_id" placeholder="Appointment ID" />
+
+        <select id="status_value">
+          <option value="Arrived">Arrived</option>
+          <option value="In Consultation">In Consultation</option>
+          <option value="Completed">Completed</option>
+        </select>
+
+        <button onclick="updateStatus()">Update Status</button>
+
+        <div class="output" id="status_result"></div>
+      </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+  </body>
+</html>
