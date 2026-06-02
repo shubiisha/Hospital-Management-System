@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Doctor Dashboard</title>
+  </head>
+  <body>
+    <h2>Doctor Dashboard</h2>
+
+    <pre id="dashboard"></pre>
+    <pre id="nextPatient"></pre>
+    <pre id="waitTime"></pre>
+
+    <script>
+      const doctorId = 1; // change if needed
+
+      async function refreshDashboard() {
+        const dashboard = await fetch(
+          `http://127.0.0.1:5000/dashboard/doctor/${doctorId}`,
+        ).then((r) => r.json());
+        const next = await fetch(
+          `http://127.0.0.1:5000/appointments/next/${doctorId}`,
+        ).then((r) => r.json());
+        const wait = await fetch(
+          `http://127.0.0.1:5000/appointments/wait-time/${doctorId}`,
+        ).then((r) => r.json());
+
+        document.getElementById("dashboard").innerText =
+          "Dashboard:\n" + JSON.stringify(dashboard, null, 2);
+        document.getElementById("nextPatient").innerText =
+          "Next Patient:\n" + JSON.stringify(next, null, 2);
+        document.getElementById("waitTime").innerText =
+          "Wait Time:\n" + JSON.stringify(wait, null, 2);
+      }
+
+      refreshDashboard();
+      setInterval(refreshDashboard, 10000); // refresh every 10 seconds
+    </script>
+  </body>
+</html>
