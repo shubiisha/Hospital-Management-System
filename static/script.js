@@ -1,5 +1,6 @@
 function bookAppointment() {
-  let patient = document.getElementById("patient_id").value;
+  let patient_name = document.getElementById("patient_name").value;
+  let patient_age = document.getElementById("patient_age").value;
   let doctor = document.getElementById("doctor_id").value;
   let date = document.getElementById("date").value;
   let time = document.getElementById("time").value;
@@ -12,9 +13,8 @@ function bookAppointment() {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      patient_name: name,
-      patient_age: age,
-      patient_email: email,
+      patient_name: patient_name,
+      patient_age: patient_age,
       doctor_id: doctor,
       appointment_date: date,
       appointment_time: time,
@@ -24,13 +24,14 @@ function bookAppointment() {
   })
     .then((res) => res.json())
     .then((data) => {
-      console.log(data);
       document.getElementById("result").innerText =
-        data.message + " Appointment ID: " + data.appointment_id;
+        data.message +
+        " | Appointment ID: " +
+        data.appointment_id +
+        " | Patient ID: " +
+        data.patient_id;
     })
-    .catch((err) => {
-      console.error(err);
-    });
+    .catch((err) => console.error(err));
 }
 
 function getNextPatient() {
@@ -94,4 +95,42 @@ function updateStatus() {
     .catch((err) => {
       console.error(err);
     });
+}
+
+function loadDoctorPatients() {
+  let doctorId = document.getElementById("doctor_dashboard_id").value;
+
+  fetch("/doctor/patients/" + doctorId)
+    .then((res) => res.json())
+    .then((data) => {
+      let html = `
+        <table border="1" width="100%">
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Time</th>
+            <th>Priority</th>
+            <th>Status</th>
+          </tr>
+      `;
+
+      data.forEach((p) => {
+        html += `
+          <tr>
+            <td>${p.appointment_id}</td>
+            <td>${p.patient_name}</td>
+            <td>${p.appointment_time}</td>
+            <td>${p.priority}</td>
+            <td>${p.status}</td>
+          </tr>
+        `;
+      });
+
+      html += "</table>";
+
+      document.getElementById("doctor_patients").innerHTML = html;
+    });
+}
+function openDoctorDashboard(doctorId) {
+  window.location.href = "/doctor-dashboard/" + doctorId;
 }

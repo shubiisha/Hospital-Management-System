@@ -22,18 +22,17 @@
 DROP TABLE IF EXISTS `appointments`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `appointments` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `patient_id` int DEFAULT NULL,
-  `doctor_id` int DEFAULT NULL,
-  `appointment_date` date DEFAULT NULL,
-  `appointment_time` time DEFAULT NULL,
-  `status` varchar(50) DEFAULT NULL,
-  `start_time` datetime DEFAULT NULL,
-  `end_time` datetime DEFAULT NULL,
-  `priority_level` int DEFAULT '0',
-  `visit_type` varchar(20) DEFAULT 'new',
-  PRIMARY KEY (`id`)
+CREATE TABLE appointments (
+  id int NOT NULL AUTO_INCREMENT,
+  doctor_id int DEFAULT NULL,
+  appointment_date date DEFAULT NULL,
+  appointment_time time DEFAULT NULL,
+  status varchar(50) DEFAULT NULL,
+  start_time datetime DEFAULT NULL,
+  end_time datetime DEFAULT NULL,
+  priority_level int DEFAULT '0',
+  visit_type varchar(20) DEFAULT 'new',
+  PRIMARY KEY (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

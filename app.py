@@ -25,14 +25,13 @@ def register():
 
     name = data['name']
     age = data['age']
-    email = data['email']
     password = data['password']
 
     cur = mysql.connection.cursor()
 
     cur.execute(
-        "INSERT INTO patients (name, age, email, password) VALUES (%s, %s, %s, %s)",
-        (name, age, email, password)
+        "INSERT INTO patients (name, age,  password) VALUES (%s, %s, %s)",
+        (name, age, password)
     )
 
     mysql.connection.commit()
@@ -43,21 +42,32 @@ def register():
 
 @app.route('/login', methods=['POST'])
 def login():
+
     data = request.get_json()
 
-    email = data['email']
-    password = data['password']
+    patient_id = data['patient_id']
 
     cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM patients WHERE email = %s AND password = %s", (email, password))
+
+    cur.execute(
+    "INSERT INTO patients (name, age, password) VALUES (%s, %s, %s)",
+    (name, age, password)
+)
+
     user = cur.fetchone()
+
     cur.close()
 
     if user:
-        return jsonify({"message": "Login successful!", "patient_id": user[0]})
-    else:
-        return jsonify({"message": "Invalid email or password"}), 401
+        return jsonify({
+            "message": "Login successful!",
+            "patient_id": user[0]
+        })
 
+    return jsonify({
+        "message": "Patient not found"
+    }), 404
+    
 @app.route('/doctors', methods=['GET'])
 def get_doctors():
     cur = mysql.connection.cursor()
@@ -78,42 +88,62 @@ def get_doctors():
 
 @app.route('/book', methods=['POST'])
 def book_appointment():
+
     data = request.get_json()
 
-    patient_id = data['patient_id']
     patient_name = data['patient_name']
     patient_age = data['patient_age']
-    patient_email = data['patient_email']
+
     doctor_id = data['doctor_id']
     appointment_date = data['appointment_date']
     appointment_time = data['appointment_time']
-    priority = data.get('priority_level', 0)
+
+    priority = int(data.get('priority_level', 0))
     visit_type = data.get('visit_type', 'followup')
-    
 
     cur = mysql.connection.cursor()
 
-    appointment_id = cur.lastrowid
-    mysql.connection.commit()
-    
-    cur.execute("""
-    INSERT INTO notifications (patient_id, message)
-    VALUES (%s, %s)
-    """, (patient_id, "Your appointment has been successfully booked."))
-    
-    mysql.connection.commit()
+    # Check if patient already exists
     cur.execute(
-    "SELECT visit_count FROM patients WHERE id=%s",
-    (patient_id,)
+    "SELECT id, visit_count FROM patients WHERE name=%s AND age=%s",
+    (patient_name, patient_age)
 )
-    visit_count = cur.fetchone()[0]
 
+    patient = cur.fetchone()
+
+    if patient:
+        patient_id = patient[0]
+        visit_count = patient[1] or 0
+
+    else:
+        cur.execute("""
+            INSERT INTO patients (name, age)
+            VALUES (%s, %s)
+        """, (
+            patient_name,
+            patient_age
+        ))
+
+        mysql.connection.commit()
+
+        patient_id = cur.lastrowid
+        visit_count = 0
+
+    # Get doctor's average consultation time
     cur.execute(
-    "SELECT avg_consult_time FROM doctors WHERE id=%s",
-    (doctor_id,)
-)
-    avg_time = cur.fetchone()[0]
-    
+        "SELECT avg_consult_time FROM doctors WHERE id=%s",
+        (doctor_id,)
+    )
+
+    doctor = cur.fetchone()
+
+    if not doctor:
+        cur.close()
+        return jsonify({"error": "Doctor not found"}), 404
+
+    avg_time = doctor[0]
+
+    # AI prediction
     predicted_duration = avg_time
 
     if visit_type == "new":
@@ -124,6 +154,11 @@ def book_appointment():
 
     if priority >= 3:
         predicted_duration += 5
+
+    if predicted_duration < 5:
+        predicted_duration = 5
+
+    # Insert appointment
     cur.execute("""
         INSERT INTO appointments
         (
@@ -137,49 +172,44 @@ def book_appointment():
             predicted_duration
         )
         VALUES
-            (%s,%s,%s,%s,'Booked',%s,%s,%s)
-        """,
-        (
-            patient_id,
-            doctor_id,
-            appointment_date,
-            appointment_time,
-            priority,
-            visit_type,
-            predicted_duration
-        ))
-    cur.execute(
-    "SELECT id FROM patients WHERE email=%s",
-    (patient_email,)
-)
-
-    patient = cur.fetchone()
-    if not patient:
-
-        cur.execute("""
-    INSERT INTO patients
-    (name, age, email)
-    VALUES (%s,%s,%s)
+        (%s,%s,%s,%s,'Booked',%s,%s,%s)
     """,
     (
-        patient_name,
-        patient_age,
-        patient_email
+        patient_id,
+        doctor_id,
+        appointment_date,
+        appointment_time,
+        priority,
+        visit_type,
+        predicted_duration
     ))
 
-        mysql.connection.commit()
+    appointment_id = cur.lastrowid
 
-        patient_id = cur.lastrowid
-
-    else:
-        
-        patient_id = patient[0]
-    
     mysql.connection.commit()
+
+    # Notification
+    cur.execute("""
+        INSERT INTO notifications
+        (patient_id, message)
+        VALUES (%s,%s)
+    """,
+    (
+        patient_id,
+        f"Appointment #{appointment_id} booked successfully."
+    ))
+
+    mysql.connection.commit()
+
     cur.close()
 
-    return jsonify({"message": "Appointment booked successfully!", "appointment_id": appointment_id})
-
+    return jsonify({
+        "message": "Appointment booked successfully!",
+        "appointment_id": appointment_id,
+        "patient_id": patient_id,
+        "predicted_duration": predicted_duration
+    })
+    
 @app.route('/appointments/today/<int:doctor_id>', methods=['GET'])
 def todays_appointments(doctor_id):
     today = date.today().strftime('%Y-%m-%d') 
@@ -187,7 +217,7 @@ def todays_appointments(doctor_id):
 
     cur = mysql.connection.cursor()
     cur.execute("""
-    SELECT a.id, p.name, a.priority_level
+    SELECT a.id, p.name, a.appointment_time, a.status
     FROM appointments a
     JOIN patients p ON a.patient_id = p.id
     WHERE a.doctor_id = %s
@@ -203,11 +233,11 @@ def todays_appointments(doctor_id):
     result = []
     for appt in appointments:
         result.append({
-            "appointment_id": appt[0],
-            "patient_name": appt[1],
-            "time": str(appt[2]),
-            "status": appt[3]
-        })
+    "appointment_id": appt[0],
+    "patient_name": appt[1],
+    "time": str(appt[2]),
+    "status": appt[3]
+})
 
     return jsonify(result)
 
@@ -252,6 +282,7 @@ def next_patient(doctor_id):
     else:
         cur.close()
         return jsonify({"message": "No patients waiting"})
+    
 @app.route('/appointment/status', methods=['PUT'])
 def update_status():
     data = request.get_json()
@@ -262,13 +293,7 @@ def update_status():
     cur = mysql.connection.cursor()
 
     cur.execute("UPDATE appointments SET status = %s WHERE id = %s", (new_status, appointment_id))
-    cur.execute("""
-UPDATE patients
-SET visit_count = visit_count + 1
-WHERE id = (
-    SELECT patient_id FROM appointments WHERE id=%s
-)
-""",(appointment_id,))
+    
     mysql.connection.commit()
 
     if new_status == "In Consultation":
@@ -277,6 +302,13 @@ WHERE id = (
 
     if new_status == "Completed":
         cur.execute("UPDATE appointments SET end_time = NOW() WHERE id = %s", (appointment_id,))
+        cur.execute("""
+UPDATE patients
+SET visit_count = visit_count + 1
+WHERE id = (
+    SELECT patient_id FROM appointments WHERE id=%s
+)
+""",(appointment_id,))
         mysql.connection.commit()
 
         cur.execute("SELECT doctor_id, start_time, end_time FROM appointments WHERE id = %s", (appointment_id,))
@@ -333,15 +365,19 @@ def wait_time(doctor_id):
             predicted_time += 5
 
         total_wait += predicted_time
-        
-        if total_wait > 30:
-            cur.execute("""
-INSERT INTO notifications (patient_id, message)
-SELECT patient_id,
-'Doctor running late. Updated wait time: %s minutes'
-FROM appointments
-WHERE doctor_id=%s AND status='Arrived'
-""",(total_wait,doctor_id))
+
+    if total_wait > 30:
+
+        cur.execute("""
+        INSERT INTO notifications (patient_id, message)
+        SELECT patient_id,
+        CONCAT('Doctor running late. Updated wait time: ', %s, ' minutes')
+        FROM appointments
+        WHERE doctor_id=%s
+        AND status='Arrived'
+        """, (total_wait, doctor_id))
+
+        mysql.connection.commit()
 
     cur.close()
 
@@ -349,7 +385,7 @@ WHERE doctor_id=%s AND status='Arrived'
         "patients_waiting": len(patients),
         "estimated_wait_time_minutes": total_wait
     })
-
+    
 @app.route('/dashboard/doctor/<int:doctor_id>', methods=['GET'])
 def doctor_dashboard(doctor_id):
     today = date.today().strftime('%Y-%m-%d')
@@ -407,7 +443,7 @@ def get_notifications(patient_id):
     """, (patient_id,))
 
     notifications = cur.fetchall()
-
+    cur.close()
     return jsonify([
         {"message": n[0], "time": str(n[1])}
         for n in notifications
@@ -446,15 +482,18 @@ WHERE a.id = %s
         return jsonify({"error": "Appointment not found"})
 
     priority, visit_type, visit_count, avg_time = data
-    
-    visit_count = visit_count or 0
-    avg_time = avg_time or 10
-    
+
+    predicted_time = calculate_predicted_time(
+    priority,
+    visit_type,
+    visit_count,
+    avg_time
+)
     cur.close()
 
     return jsonify({
-        "appointment_id": appointment_id,
-        "predicted_consult_time_minutes": predicted_time
+    "appointment_id": appointment_id,
+    "predicted_consult_time_minutes": predicted_time
     })
     
 def calculate_predicted_time(priority, visit_type, visit_count, avg_time):
@@ -541,14 +580,65 @@ def doctor_utilization(doctor_id):
     WHERE doctor_id=%s AND status='Completed'
     """,(doctor_id,))
 
-    total_consults,total_time = cur.fetchone()
+    total_consults, total_time = cur.fetchone()
 
-    utilization = total_time/(8*60)*100
+    total_time = total_time or 0
+
+    utilization = round((total_time/(8*60))*100, 2)
+
+    cur.close()
 
     return jsonify({
-        "consultations":total_consults,
-        "utilization_percent":utilization
+        "consultations": total_consults,
+        "utilization_percent": utilization
     })
 
+@app.route('/doctor/patients/<int:doctor_id>', methods=['GET'])
+def doctor_patients(doctor_id):
+
+    today = date.today().strftime('%Y-%m-%d')
+
+    cur = mysql.connection.cursor()
+
+    cur.execute("""
+        SELECT
+            a.id,
+            p.name,
+            a.appointment_time,
+            a.priority_level,
+            a.status
+        FROM appointments a
+        JOIN patients p
+            ON a.patient_id = p.id
+        WHERE a.doctor_id = %s
+        AND a.appointment_date = %s
+        ORDER BY a.priority_level DESC,
+                a.appointment_time ASC
+    """, (doctor_id, today))
+
+    rows = cur.fetchall()
+
+    cur.close()
+
+    result = []
+
+    for row in rows:
+        result.append({
+            "appointment_id": row[0],
+            "patient_name": row[1],
+            "appointment_time": str(row[2]),
+            "priority": row[3],
+            "status": row[4]
+        })
+
+    return jsonify(result)
+
+@app.route('/doctor-dashboard/<int:doctor_id>')
+def doctor_dashboard_page(doctor_id):
+    return render_template(
+        "doctor_dashboard.html",
+        doctor_id=doctor_id
+    )
+    
 if __name__ == '__main__':
     app.run(debug=True)

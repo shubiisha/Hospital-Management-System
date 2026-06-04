@@ -9,17 +9,23 @@
     <header>
       <h1>Smart Hospital Appointment System</h1>
     </header>
+    <div class="card">
+      <h2>Doctor Dashboards</h2>
 
+      <button onclick="openDoctorDashboard(1)">Doctor 1 cardio</button>
+
+      <button onclick="openDoctorDashboard(2)">Doctor 2 derma</button>
+
+      <button onclick="openDoctorDashboard(3)">Doctor 3 gen phy</button>
+    </div>
     <div class="container">
       <div class="card">
         <h2>Book Appointment</h2>
 
-        <input type="number" id="patient_id" placeholder="Patient ID" />
         <input id="patient_name" placeholder="Patient Name" />
 
         <input id="patient_age" placeholder="Age" />
 
-        <input id="patient_email" placeholder="Email" />
         <input type="number" id="doctor_id" placeholder="Doctor ID" />
         <input type="date" id="date" />
         <input type="time" id="time" />
