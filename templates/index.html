@@ -12,11 +12,22 @@
     <div class="card">
       <h2>Doctor Dashboards</h2>
 
-      <button onclick="openDoctorDashboard(1)">Doctor 1 cardio</button>
+      <div class="doctor-cards">
+        <div class="doctor-card" onclick="openDoctorDashboard(1)">
+          <h3>🫀 Dr. Mehta</h3>
+          <p>Cardiology</p>
+        </div>
 
-      <button onclick="openDoctorDashboard(2)">Doctor 2 derma</button>
+        <div class="doctor-card" onclick="openDoctorDashboard(2)">
+          <h3>🩹 Dr. Sharma</h3>
+          <p>Dermatology</p>
+        </div>
 
-      <button onclick="openDoctorDashboard(3)">Doctor 3 gen phy</button>
+        <div class="doctor-card" onclick="openDoctorDashboard(3)">
+          <h3>🩺 Dr. Iyer</h3>
+          <p>General Physician</p>
+        </div>
+      </div>
     </div>
     <div class="container">
       <div class="card">
@@ -26,9 +37,16 @@
 
         <input id="patient_age" placeholder="Age" />
 
-        <input type="number" id="doctor_id" placeholder="Doctor ID" />
-        <input type="date" id="date" />
-        <input type="time" id="time" />
+        <select id="doctor_id" onchange="loadSlots()">
+          <option value="">Select Doctor</option>
+          <option value="1">Dr. Cardio</option>
+          <option value="2">Dr. Derma</option>
+          <option value="3">Dr. General Physician</option>
+        </select>
+        <input type="date" id="date" onchange="loadSlots()" />
+        <select id="time">
+          <option>Select Date First</option>
+        </select>
         <input type="number" id="priority" placeholder="Priority Level" />
         <select id="visit_type">
           <option value="new">New Patient</option>
@@ -42,8 +60,12 @@
       <div class="card">
         <h2>Next Patient Queue</h2>
 
-        <input type="number" id="doctor_queue" placeholder="Doctor ID" />
-
+        <select id="doctor_queue">
+          <option value="">Select Doctor</option>
+          <option value="1">Dr. Cardio</option>
+          <option value="2">Dr. Derma</option>
+          <option value="3">Dr. General Physician</option>
+        </select>
         <button onclick="getNextPatient()">Check Queue</button>
 
         <div class="output" id="queue"></div>

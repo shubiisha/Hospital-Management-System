@@ -86,6 +86,71 @@ def get_doctors():
 
     return jsonify(doctor_list)
 
+@app.route('/available-slots/<int:doctor_id>/<appointment_date>')
+def available_slots(doctor_id, appointment_date):
+
+    all_slots = [
+        "09:00:00",
+        "09:10:00",
+        "09:20:00",
+        "09:30:00",
+        "09:40:00",
+        "09:50:00",
+        "10:00:00",
+        "10:10:00",
+        "10:20:00",
+        "10:30:00",
+        "10:40:00",
+        "10:50:00",
+        "11:00:00",
+        "11:10:00",
+        "11:20:00",
+        "11:30:00",
+        "11:40:00",
+        "11:50:00",
+
+        "14:00:00",
+        "14:10:00",
+        "14:20:00",
+        "14:30:00",
+        "14:40:00",
+        "14:50:00",
+        "15:00:00",
+        "15:10:00",
+        "15:20:00",
+        "15:30:00",
+        "15:40:00",
+        "15:50:00"
+    ]
+
+    cur = mysql.connection.cursor()
+
+    cur.execute("""
+    SELECT appointment_time
+    FROM appointments
+    WHERE doctor_id=%s
+    AND appointment_date=%s
+    """,
+    (
+        doctor_id,
+        appointment_date
+    ))
+
+    booked = [
+        str(row[0])
+        for row in cur.fetchall()
+    ]
+
+    available = [
+        slot
+        for slot in all_slots
+        if slot not in booked
+    ]
+
+    cur.close()
+
+    return jsonify(available)
+
 @app.route('/book', methods=['POST'])
 def book_appointment():
 
@@ -157,7 +222,29 @@ def book_appointment():
 
     if predicted_duration < 5:
         predicted_duration = 5
+    
+    cur.execute("""
+        SELECT id
+        FROM appointments
+        WHERE doctor_id=%s
+        AND appointment_date=%s
+        AND appointment_time=%s
+        AND status != 'Cancelled'
+        """,
+        (
+            doctor_id,
+            appointment_date,
+            appointment_time
+        ))
 
+    existing = cur.fetchone()
+
+    if existing:
+        cur.close()
+        return jsonify({
+            "error": "This slot is already booked."
+        }), 400
+    
     # Insert appointment
     cur.execute("""
         INSERT INTO appointments
@@ -204,11 +291,13 @@ def book_appointment():
     cur.close()
 
     return jsonify({
-        "message": "Appointment booked successfully!",
-        "appointment_id": appointment_id,
-        "patient_id": patient_id,
-        "predicted_duration": predicted_duration
-    })
+    "message": "Appointment booked successfully!",
+    "appointment_id": appointment_id,
+    "patient_name": patient_name,
+    "doctor_id": doctor_id,
+    "appointment_time": appointment_time,
+    "predicted_duration": predicted_duration
+})
     
 @app.route('/appointments/today/<int:doctor_id>', methods=['GET'])
 def todays_appointments(doctor_id):

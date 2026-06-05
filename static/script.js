@@ -24,12 +24,21 @@ function bookAppointment() {
   })
     .then((res) => res.json())
     .then((data) => {
-      document.getElementById("result").innerText =
-        data.message +
-        " | Appointment ID: " +
-        data.appointment_id +
-        " | Patient ID: " +
-        data.patient_id;
+      document.getElementById("result").innerHTML = `
+    <div class="success-box">
+        <h3>✅ Appointment Booked</h3>
+
+        <p><strong>Appointment ID:</strong> ${data.appointment_id}</p>
+
+        <p><strong>Patient:</strong> ${data.patient_name}</p>
+
+        <p><strong>Doctor ID:</strong> ${data.doctor_id}</p>
+
+        <p><strong>Time:</strong> ${data.appointment_time}</p>
+
+        <p><strong>Predicted Duration:</strong> ${data.predicted_duration} min</p>
+    </div>
+`;
     })
     .catch((err) => console.error(err));
 }
@@ -133,4 +142,27 @@ function loadDoctorPatients() {
 }
 function openDoctorDashboard(doctorId) {
   window.location.href = "/doctor-dashboard/" + doctorId;
+}
+
+function loadSlots() {
+  let doctor = document.getElementById("doctor_id").value;
+  let date = document.getElementById("date").value;
+
+  if (!doctor || !date) return;
+
+  fetch(`/available-slots/${doctor}/${date}`)
+    .then((res) => res.json())
+    .then((slots) => {
+      let dropdown = document.getElementById("time");
+
+      dropdown.innerHTML = "";
+
+      slots.forEach((slot) => {
+        dropdown.innerHTML += `
+          <option value="${slot}">
+            ${slot}
+          </option>
+        `;
+      });
+    });
 }
