@@ -47,13 +47,23 @@
   <body>
     <h1>Doctor Dashboard</h1>
 
+    <p><a href="/" style="text-decoration:none; color:#007bff; font-weight:bold;">← Back to Main Reception</a></p>
+
     <div class="card">
       <h2>Doctor Statistics</h2>
       <div id="dashboard"></div>
     </div>
 
     <div class="card">
-      <h2>Next Patient</h2>
+      <h2>Doctor Daily Utilization</h2>
+      <div style="background:#e9ecef; border-radius:10px; height:26px; overflow:hidden; position:relative; margin-top:10px;">
+        <div id="utilizationBar" style="background:#28a745; width:0%; height:100%; text-align:center; color:white; font-size:13px; font-weight:bold; line-height:26px; transition:width 0.5s ease;">0%</div>
+      </div>
+      <p id="utilizationDetail" style="margin-top:8px; font-size:14px; color:#555;"></p>
+    </div>
+
+    <div class="card">
+      <h2>Next Patient in Queue</h2>
       <div id="nextPatient"></div>
     </div>
 
@@ -69,6 +79,7 @@
         <thead>
           <tr>
             <th>Appointment ID</th>
+            <th>Patient ID</th>
             <th>Patient Name</th>
             <th>Time</th>
             <th>Priority</th>
@@ -81,65 +92,84 @@
     </div>
 
     <script>
-                const doctorId = {{ doctor_id }};
+      const doctorId = {{ doctor_id }};
 
-                async function refreshDashboard() {
-                  const dashboard = await fetch(`/dashboard/doctor/${doctorId}`).then(
-                    (r) => r.json(),
-                  );
+      async function refreshDashboard() {
+        try {
+          const dashboard = await fetch(`/dashboard/doctor/${doctorId}`).then((r) => r.json());
+          const next = await fetch(`/appointments/next/${doctorId}`).then((r) => r.json());
+          const wait = await fetch(`/appointments/wait-time/${doctorId}`).then((r) => r.json());
+          const patients = await fetch(`/doctor/patients/${doctorId}`).then((r) => r.json());
+          const util = await fetch(`/doctor/utilization/${doctorId}`).then((r) => r.json()).catch(() => ({ consultations: 0, utilization_percent: 0 }));
 
-                  const next = await fetch(`/appointments/next/${doctorId}`).then((r) =>
-                    r.json(),
-                  );
+          document.getElementById("dashboard").innerHTML = `
+            <strong>Doctor:</strong> ${dashboard.doctor_name || 'Doctor ' + doctorId}<br>
+            <strong>Avg Consultation Time:</strong> ${dashboard.avg_consultation_time_minutes} min<br>
+            <strong>Total Appointments Today:</strong> ${dashboard.total_appointments_today}<br>
+            <strong>Completed Today:</strong> ${dashboard.completed_today}<br>
+            <strong>Currently Waiting:</strong> ${dashboard.patients_waiting}
+          `;
 
-                  const wait = await fetch(`/appointments/wait-time/${doctorId}`).then(
-                    (r) => r.json(),
-                  );
+          const utilPct = util.utilization_percent || dashboard.utilization_percent || 0;
+          const uBar = document.getElementById("utilizationBar");
+          uBar.style.width = Math.min(100, utilPct) + "%";
+          uBar.innerText = utilPct + "%";
+          if (utilPct > 80) {
+            uBar.style.background = "#e74c3c";
+          } else if (utilPct > 50) {
+            uBar.style.background = "#27ae60";
+          } else {
+            uBar.style.background = "#3498db";
+          }
+          document.getElementById("utilizationDetail").innerText = 
+            `Completed Consultations: ${util.consultations || dashboard.completed_today || 0} | Clinical Utilization of 8hr shift: ${utilPct}%`;
 
-                  const patients = await fetch(`/doctor/patients/${doctorId}`).then((r) =>
-                    r.json(),
-                  );
+          document.getElementById("nextPatient").innerHTML = next.message
+            ? `<p style="color:#777;">${next.message}</p>`
+            : `
+              <div class="patient-card" style="border-left: 5px solid ${next.priority_level >= 10 ? '#e74c3c' : '#3498db'};">
+                <p><strong>Appointment ID:</strong> #${next.appointment_id}</p>
+                <p><strong>Patient ID:</strong> #${next.patient_id}</p>
+                <p><strong>Patient Name:</strong> <b>${next.patient_name || 'Patient'}</b></p>
+                <p><strong>Priority:</strong> <span style="font-weight:bold; color:${next.priority_level >= 10 ? '#c0392b' : '#2c3e50'};">${next.priority_level >= 10 ? '🚨 Emergency (' + next.priority_level + ')' : next.priority_level}</span></p>
+                <p><strong>Scheduled Time:</strong> ${next.time}</p>
+              </div>
+            `;
 
-                  document.getElementById("dashboard").innerHTML = `
-                  Doctor: ${dashboard.doctor_name}<br>
-                  Avg Consultation Time: ${dashboard.avg_consultation_time_minutes} min<br>
-                  Total Appointments: ${dashboard.total_appointments_today}<br>
-                  Completed: ${dashboard.completed_today}<br>
-                  Waiting: ${dashboard.patients_waiting}
-              `;
+          document.getElementById("waitTime").innerHTML =
+            `<strong>${wait.estimated_wait_time_minutes} minutes</strong> (${wait.patients_waiting || 0} patients currently in queue)`;
 
-                  document.getElementById("nextPatient").innerHTML = next.message
-      ? next.message
-      : `
-        <div class="patient-card">
-          <p><strong>Appointment ID:</strong> ${next.appointment_id}</p>
-          <p><strong>Patient ID:</strong> ${next.patient_id}</p>
-          <p><strong>Priority:</strong> ${next.priority_level}</p>
-          <p><strong>Time:</strong> ${next.time}</p>
-        </div>
-      `;
+          let rows = "";
+          if (patients.length === 0) {
+            rows = `<tr><td colspan="6" style="text-align:center; color:#888;">No appointments scheduled today.</td></tr>`;
+          } else {
+            patients.forEach((p) => {
+              const displayTime = p.appointment_time || p.time || 'N/A';
+              const isEmerg = (p.priority >= 10 || p.priority_level >= 10);
+              const priorityDisplay = isEmerg 
+                ? `<span style="color:#c0392b; font-weight:bold;">🚨 Emergency (${p.priority || p.priority_level})</span>` 
+                : (p.priority || p.priority_level || 0);
 
-                  document.getElementById("waitTime").innerHTML =
-                    `${wait.estimated_wait_time_minutes} minutes`;
+              rows += `
+                <tr>
+                    <td>#${p.appointment_id}</td>
+                    <td><b style="color:#2980b9;">#${p.patient_id || 'N/A'}</b></td>
+                    <td><b>${p.patient_name || 'Patient'}</b></td>
+                    <td>${displayTime}</td>
+                    <td>${priorityDisplay}</td>
+                    <td><span style="padding:3px 8px; border-radius:4px; font-size:12px; font-weight:bold; background:${p.status === 'Completed' ? '#d4edda; color:#155724' : (p.status === 'In Consultation' ? '#cce5ff; color:#004085' : (p.status === 'Arrived' ? '#fff3cd; color:#856404' : '#e2e3e5; color:#383d41'))};">${p.status}</span></td>
+                </tr>`;
+            });
+          }
 
-                  let rows = "";
+          document.getElementById("patientTable").innerHTML = rows;
+        } catch (err) {
+          console.error("Dashboard refresh error:", err);
+        }
+      }
 
-                  patients.forEach((p) => {
-                    rows += `
-                  <tr>
-                      <td>${p.appointment_id}</td>
-                      <td>${p.patient_name}</td>
-                      <td>${p.time}</td>
-                      <td>${p.priority}</td>
-                      <td>${p.status}</td>
-                  </tr>`;
-                  });
-
-                  document.getElementById("patientTable").innerHTML = rows;
-                }
-
-                refreshDashboard();
-                setInterval(refreshDashboard, 10000);
+      refreshDashboard();
+      setInterval(refreshDashboard, 8000);
     </script>
   </body>
 </html>

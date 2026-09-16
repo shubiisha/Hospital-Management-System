@@ -24,14 +24,17 @@ DROP TABLE IF EXISTS `appointments`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE appointments (
   id int NOT NULL AUTO_INCREMENT,
+  patient_id int DEFAULT NULL,
+  patient_name varchar(100) DEFAULT NULL,
   doctor_id int DEFAULT NULL,
   appointment_date date DEFAULT NULL,
   appointment_time time DEFAULT NULL,
-  status varchar(50) DEFAULT NULL,
+  status varchar(50) DEFAULT 'Booked',
   start_time datetime DEFAULT NULL,
   end_time datetime DEFAULT NULL,
   priority_level int DEFAULT '0',
   visit_type varchar(20) DEFAULT 'new',
+  predicted_duration int DEFAULT '15',
   PRIMARY KEY (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -79,10 +82,12 @@ CREATE TABLE `patients` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(100) DEFAULT NULL,
   `age` int DEFAULT NULL,
+  `phone` varchar(20) DEFAULT NULL,
   `email` varchar(100) DEFAULT NULL,
   `password` varchar(100) DEFAULT NULL,
   `visit_count` int DEFAULT '0',
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_phone` (`phone`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

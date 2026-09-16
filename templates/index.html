@@ -35,21 +35,23 @@
 
         <input id="patient_name" placeholder="Patient Name" />
 
-        <input id="patient_age" placeholder="Age" />
+        <input id="patient_age" placeholder="Age" type="number" />
 
-        <select id="doctor_id" onchange="loadSlots()">
+        <input id="patient_phone" placeholder="Phone Number (Required for Live SMS / Alerts)" type="tel" />
+
+        <select id="doctor_id" onchange="loadAvailableSlots()">
           <option value="">Select Doctor</option>
-          <option value="1">Dr. Cardio</option>
-          <option value="2">Dr. Derma</option>
-          <option value="3">Dr. General Physician</option>
+          <option value="1">Dr. Mehta — Cardiology</option>
+          <option value="2">Dr. Sharma — Dermatology</option>
+          <option value="3">Dr. Iyer — General Physician</option>
         </select>
-        <input type="date" id="date" onchange="loadSlots()" />
+        <input type="date" id="date" onchange="loadAvailableSlots()" />
         <select id="time">
           <option>Select Date First</option>
         </select>
-        <input type="number" id="priority" placeholder="Priority Level" />
+        <input type="number" id="priority" placeholder="Priority Level (0: Normal, 3: High, 10: Emergency)" />
         <select id="visit_type">
-          <option value="new">New Patient</option>
+          <option value="new">New Patient (+6 min)</option>
           <option value="followup">Follow Up</option>
         </select>
         <button onclick="bookAppointment()">Book Appointment</button>
@@ -57,29 +59,57 @@
         <p id="result"></p>
       </div>
 
+      <div class="card emergency-card">
+        <h2 style="color: #c0392b;">🚨 Emergency Admission</h2>
+        <p style="font-size: 13px; color: #666;">Immediately adds patient to queue with Priority 10 &amp; status Arrived.</p>
+        <input id="emerg_patient_name" placeholder="Emergency Patient Name" />
+        <input id="emerg_patient_age" placeholder="Age" type="number" />
+        <input id="emerg_patient_phone" placeholder="Phone Number (Optional)" type="tel" />
+        <select id="emerg_doctor_id">
+          <option value="">Select Doctor</option>
+          <option value="1">Dr. Mehta — Cardiology</option>
+          <option value="2">Dr. Sharma — Dermatology</option>
+          <option value="3">Dr. Iyer — General Physician</option>
+        </select>
+        <button class="btn-emergency" onclick="bookEmergencyAppointment()">Admit Emergency Patient</button>
+        <div class="output" id="emerg_result"></div>
+      </div>
+
       <div class="card">
         <h2>Next Patient Queue</h2>
 
         <select id="doctor_queue">
           <option value="">Select Doctor</option>
-          <option value="1">Dr. Cardio</option>
-          <option value="2">Dr. Derma</option>
-          <option value="3">Dr. General Physician</option>
+          <option value="1">Dr. Mehta — Cardiology</option>
+          <option value="2">Dr. Sharma — Dermatology</option>
+          <option value="3">Dr. Iyer — General Physician</option>
         </select>
-        <button onclick="getNextPatient()">Check Queue</button>
+        <button onclick="getNextPatient()">Call Next Patient</button>
 
         <div class="output" id="queue"></div>
       </div>
 
       <div class="card">
-        <h2>AI Consultation Prediction</h2>
+        <h2>⏱️ Estimated Wait Time</h2>
+        <select id="wait_doctor_id">
+          <option value="1">Dr. Mehta — Cardiology</option>
+          <option value="2">Dr. Sharma — Dermatology</option>
+          <option value="3">Dr. Iyer — General Physician</option>
+        </select>
+        <button onclick="checkWaitTime()">Check Live Wait Time</button>
+        <div class="output" id="wait_output"></div>
+      </div>
+
+      <div class="card">
+        <h2>🤖 AI Consultation Prediction</h2>
 
         <input type="number" id="appointment_id" placeholder="Appointment ID" />
 
-        <button onclick="predictTime()">Predict Time</button>
+        <button onclick="predictTime()">Predict Consultation Time</button>
 
         <div class="output" id="prediction"></div>
       </div>
+
       <div class="card">
         <h2>Update Appointment Status</h2>
 
@@ -94,6 +124,20 @@
         <button onclick="updateStatus()">Update Status</button>
 
         <div class="output" id="status_result"></div>
+      </div>
+
+      <div class="card">
+        <h2>🔔 Patient Live Notifications</h2>
+        <input type="number" id="notif_patient_id" placeholder="Enter Patient ID" />
+        <button onclick="viewNotifications()">View Notifications</button>
+        <div class="output" id="notif_list"></div>
+      </div>
+
+      <div class="card">
+        <h2>⚡ Clinic Operations</h2>
+        <p style="font-size: 13px; color: #666;">Scan today's booked appointments whose time has elapsed and mark as No-Show.</p>
+        <button onclick="triggerNoShowDetection()" style="background: #e67e22;">Run No-Show Detection</button>
+        <div class="output" id="noshow_output"></div>
       </div>
     </div>
 

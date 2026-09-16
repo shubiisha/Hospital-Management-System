@@ -111,3 +111,33 @@ select {
 .success-box p {
   margin: 5px 0;
 }
+
+.emergency-card {
+  border-left: 6px solid #e74c3c !important;
+  background: #fffdfd;
+}
+
+.btn-emergency {
+  background: #e74c3c !important;
+  color: white !important;
+  font-weight: bold;
+}
+
+.btn-emergency:hover {
+  background: #c0392b !important;
+}
+
+.notif-item {
+  background: #ffffff;
+  border-left: 4px solid #3498db;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.notif-time {
+  font-size: 11px;
+  color: #888;
+  display: block;
+}
